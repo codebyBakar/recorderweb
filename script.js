@@ -4,8 +4,10 @@ let stream;
 let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 // Show mobile message if on mobile
+
+
 if (isMobile) {
-  document.getElementById('mobileScreenMessage').classList.add('show');
+  document.getElementById('mobileScreenMessage').style.display = "block";
 }
 
 // 🔁 Switch sections
@@ -236,4 +238,5 @@ window.addEventListener('beforeunload', () => {
     stream.getTracks().forEach(track => track.stop());
   }
 });
+
 
