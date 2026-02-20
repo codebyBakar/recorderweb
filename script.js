@@ -3,11 +3,11 @@ let chunks = [];
 let stream;
 let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-// Show mobile message if on mobile
-
-
+// Update screen info based on device
 if (isMobile) {
-  document.getElementById('mobileScreenMessage').style.display = "block";
+  document.getElementById('screenInfoText').innerHTML = '📱 Android: Select "Screen Record" or "Cast" when prompted • iPhone: Screen recording requires iOS 15+';
+} else {
+  document.getElementById('screenInfoText').innerHTML = '🖥️ Select which window or screen you want to share';
 }
 
 // 🔁 Switch sections
@@ -17,11 +17,6 @@ function showSection(id) {
   
   // Reset UI
   resetUI();
-  
-  // Update mobile message for screen section
-  if (id === 'screenSection' && isMobile) {
-    document.getElementById('mobileScreenMessage').classList.add('show');
-  }
 }
 
 // Reset UI elements
@@ -64,7 +59,11 @@ async function startVideo() {
   try {
     resetUI();
     stream = await navigator.mediaDevices.getUserMedia({ 
-      video: { facingMode: 'user' }, 
+      video: { 
+        facingMode: 'user',
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }, 
       audio: true 
     });
     document.getElementById("videoPreview").srcObject = stream;
@@ -84,7 +83,8 @@ async function startAudio() {
     stream = await navigator.mediaDevices.getUserMedia({ 
       audio: {
         echoCancellation: true,
-        noiseSuppression: true
+        noiseSuppression: true,
+        sampleRate: 44100
       } 
     });
     
@@ -99,39 +99,90 @@ async function startAudio() {
   }
 }
 
-// 🖥 SCREEN RECORDING - Mobile friendly
+// 🖥 SCREEN RECORDING - Works on both Android and Desktop
 async function startScreen() {
-  resetUI();
-
-  // ❗ Detect mobile
-  if (isMobile) {
-    showError("Screen recording is not supported on mobile browsers.");
-    return;
-  }
-
-  // ❗ Check support
-  if (!navigator.mediaDevices.getDisplayMedia) {
-    showError("Screen recording not supported in this browser.");
-    return;
-  }
-
   try {
-    stream = await navigator.mediaDevices.getDisplayMedia({
+    resetUI();
+    
+    // Check if browser supports getDisplayMedia
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      showError('Screen recording is not supported in this browser');
+      return;
+    }
+    
+    // Try screen recording with appropriate constraints for mobile/desktop
+    const constraints = {
       video: true,
       audio: true
-    });
-
+    };
+    
+    // On Android, we need to be more specific
+    if (isMobile) {
+      // For Android, this will trigger the screen recording permission
+      constraints.video = {
+        mediaSource: 'screen'
+      };
+    }
+    
+    // Request screen capture
+    stream = await navigator.mediaDevices.getDisplayMedia(constraints);
+    
+    // Check if we got video tracks
+    if (stream.getVideoTracks().length === 0) {
+      throw new Error('No video track available');
+    }
+    
+    // Display the stream
     document.getElementById("screenPreview").srcObject = stream;
     document.getElementById("screenStartBtn").disabled = true;
     document.getElementById("screenStopBtn").disabled = false;
-
-    // Stop when user ends sharing
-    stream.getVideoTracks()[0].onended = () => stopRecording();
-
+    
+    // Handle user cancellation (closing the share dialog)
+    stream.getVideoTracks()[0].onended = () => {
+      if (recorder && recorder.state === "recording") {
+        stopRecording();
+      }
+      document.getElementById("screenStartBtn").disabled = false;
+      document.getElementById("screenStopBtn").disabled = true;
+    };
+    
+    // Try to add audio if available
+    try {
+      const audioStream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true
+        }
+      });
+      audioStream.getAudioTracks().forEach(track => {
+        stream.addTrack(track);
+      });
+    } catch (audioError) {
+      console.log('No microphone available for screen recording');
+      // Continue without audio
+    }
+    
     startRecorder("screenDownload", "screenPreview");
-
+    
   } catch (error) {
-    showError("Screen recording permission denied.");
+    console.error('Screen recording error:', error);
+    
+    // Handle specific errors with user-friendly messages
+    if (error.name === 'NotAllowedError' || error.message.includes('Permission')) {
+      showError('Screen recording permission was denied. Please allow access to share your screen.');
+    } else if (error.name === 'NotFoundError' || error.message.includes('No source')) {
+      showError('No screen or window selected for sharing.');
+    } else if (error.name === 'NotSupportedError' || error.message.includes('support')) {
+      showError('Screen recording is not fully supported on this device/browser.');
+    } else if (error.name === 'AbortError' || error.message.includes('cancelled')) {
+      showError('Screen recording was cancelled.');
+    } else {
+      showError('Could not start screen recording: ' + (error.message || 'Unknown error'));
+    }
+    
+    // Reset UI
+    document.getElementById("screenStartBtn").disabled = false;
+    document.getElementById("screenStopBtn").disabled = true;
   }
 }
 
@@ -139,16 +190,24 @@ async function startScreen() {
 function startRecorder(downloadId, previewId) {
   chunks = [];
   
-  // Determine MIME type
-  const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') 
-    ? 'video/webm;codecs=vp9,opus'
-    : 'video/webm';
+  // Determine best MIME type
+  let mimeType = 'video/webm';
+  if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
+    mimeType = 'video/webm;codecs=vp9,opus';
+  } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
+    mimeType = 'video/webm;codecs=vp8,opus';
+  }
   
-  recorder = new MediaRecorder(stream, {
-    mimeType: mimeType,
-    videoBitsPerSecond: 2500000,
-    audioBitsPerSecond: 128000
-  });
+  try {
+    recorder = new MediaRecorder(stream, {
+      mimeType: mimeType,
+      videoBitsPerSecond: 2500000,
+      audioBitsPerSecond: 128000
+    });
+  } catch (e) {
+    // Fallback to default
+    recorder = new MediaRecorder(stream);
+  }
 
   recorder.ondataavailable = e => {
     if (e.data.size > 0) chunks.push(e.data);
@@ -238,5 +297,3 @@ window.addEventListener('beforeunload', () => {
     stream.getTracks().forEach(track => track.stop());
   }
 });
-
-
