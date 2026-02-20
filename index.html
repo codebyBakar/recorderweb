@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Recorder Pro</title>
+<link rel="stylesheet" href="style.css">
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+</head>
+<body>
+
+<div class="menu">
+  <button onclick="showSection('videoSection')">
+    <i class="fas fa-video"></i> Video
+  </button>
+  <button onclick="showSection('audioSection')">
+    <i class="fas fa-microphone-alt"></i> Audio
+  </button>
+  <button onclick="showSection('screenSection')">
+    <i class="fas fa-desktop"></i> Screen
+  </button>
+</div>
+
+<!-- VIDEO SECTION -->
+<div id="videoSection" class="section active">
+  <video id="videoPreview" autoplay controls></video>
+  <div class="controls">
+    <button onclick="startVideo()"><i class="fas fa-play"></i> Start</button>
+    <button onclick="stopRecording()"><i class="fas fa-stop"></i> Stop</button>
+  </div>
+  <a id="videoDownload" class="download-link" download="video.webm"><i class="fas fa-download"></i> Download Video</a>
+</div>
+
+<!-- AUDIO SECTION - WITH REALISTIC WAVEFORM -->
+<div id="audioSection" class="section">
+  <div class="audio-container">
+    <div class="waveform-visualizer">
+      <div class="waveform-container" id="waveform">
+        <!-- 24 waveform bars for realistic look -->
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+      </div>
+      
+      <div class="recording-indicator" id="recordingIndicator">
+        <i class="fas fa-circle"></i>
+        <span>RECORDING AUDIO</span>
+      </div>
+    </div>
+    
+    <!-- Audio preview section with play button (hidden until recording) -->
+    <div class="audio-preview-container" id="audioPreviewContainer">
+      <button class="play-preview-btn" id="playPreviewBtn" onclick="togglePlayPreview()">
+        <i class="fas fa-play" id="playIcon"></i>
+      </button>
+      <span class="preview-text">Preview your recording</span>
+    </div>
+    
+    <!-- Hidden audio element -->
+    <audio id="audioPreview"></audio>
+  </div>
+  
+  <div class="controls">
+    <button onclick="startAudio()"><i class="fas fa-circle"></i> Start</button>
+    <button onclick="stopRecording()"><i class="fas fa-stop"></i> Stop</button>
+  </div>
+  <a id="audioDownload" class="download-link" download="audio.webm"><i class="fas fa-download"></i> Download Audio</a>
+</div>
+
+<!-- SCREEN SECTION -->
+<div id="screenSection" class="section">
+  <video id="screenPreview" autoplay controls></video>
+  <div class="controls">
+    <button onclick="startScreen()"><i class="fas fa-play"></i> Start</button>
+    <button onclick="stopRecording()"><i class="fas fa-stop"></i> Stop</button>
+  </div>
+  <a id="screenDownload" class="download-link" download="screen.webm"><i class="fas fa-download"></i> Download Screen</a>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
