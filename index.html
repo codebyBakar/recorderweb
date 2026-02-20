@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Studio Recorder Pro</title>
-<link rel="stylesheet" href="style.css">
 <!-- Font Awesome -->
+ <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
 </head>
@@ -79,13 +79,10 @@
 
 <!-- SCREEN SECTION -->
 <div id="screenSection" class="section">
-  <!-- Mobile-friendly message -->
-  <div class="mobile-message" id="mobileScreenMessage">
-    <i class="fas fa-mobile-alt"></i>
-    <div class="message-content">
-      <strong>Screen Recording on Mobile</strong>
-      <span id="mobileMessageText">On Android, you'll need to grant permission and select "Start now" to begin recording.</span>
-    </div>
+  <!-- Screen recording info - shows differently on mobile vs desktop -->
+  <div class="screen-info" id="screenInfo">
+    <i class="fas fa-info-circle"></i>
+    <span id="screenInfoText">On Android, select "Screen Record" or "Cast" to share your screen</span>
   </div>
   
   <video id="screenPreview" autoplay controls playsinline></video>
@@ -100,5 +97,3 @@
 
 </body>
 </html>
-
-
