@@ -99,82 +99,37 @@ async function startAudio() {
 
 // 🖥 SCREEN RECORDING - Mobile friendly
 async function startScreen() {
+  resetUI();
+
+  // ❗ Detect mobile
+  if (isMobile) {
+    showError("Screen recording is not supported on mobile browsers.");
+    return;
+  }
+
+  // ❗ Check support
+  if (!navigator.mediaDevices.getDisplayMedia) {
+    showError("Screen recording not supported in this browser.");
+    return;
+  }
+
   try {
-    resetUI();
-    
-    // Check if browser supports screen recording
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-      if (isMobile) {
-        // For mobile, try getUserMedia as fallback for camera
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'environment' }, 
-            audio: true 
-          });
-          document.getElementById("screenPreview").srcObject = stream;
-          document.getElementById("screenStartBtn").disabled = true;
-          document.getElementById("screenStopBtn").disabled = false;
-          startRecorder("screenDownload", "screenPreview");
-          showError('Using camera instead of screen recording on mobile');
-          return;
-        } catch (cameraError) {
-          showError('Screen recording not supported on this device');
-          return;
-        }
-      } else {
-        showError('Screen recording not supported in this browser');
-        return;
-      }
-    }
-    
-    // Try screen recording
-    stream = await navigator.mediaDevices.getDisplayMedia({ 
-      video: true, 
-      audio: true 
+    stream = await navigator.mediaDevices.getDisplayMedia({
+      video: true,
+      audio: true
     });
-    
+
     document.getElementById("screenPreview").srcObject = stream;
     document.getElementById("screenStartBtn").disabled = true;
     document.getElementById("screenStopBtn").disabled = false;
-    
-    // Handle user cancellation
-    stream.getVideoTracks()[0].onended = () => {
-      if (recorder && recorder.state === "recording") {
-        stopRecording();
-      }
-      document.getElementById("screenStartBtn").disabled = false;
-      document.getElementById("screenStopBtn").disabled = true;
-    };
-    
+
+    // Stop when user ends sharing
+    stream.getVideoTracks()[0].onended = () => stopRecording();
+
     startRecorder("screenDownload", "screenPreview");
-    
+
   } catch (error) {
-    console.error('Screen recording error:', error);
-    
-    if (error.name === 'NotAllowedError') {
-      showError('Screen recording permission denied');
-    } else if (error.name === 'NotFoundError') {
-      showError('No screen recording source found');
-    } else {
-      // Try fallback to camera on mobile
-      if (isMobile) {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'environment' }, 
-            audio: true 
-          });
-          document.getElementById("screenPreview").srcObject = stream;
-          document.getElementById("screenStartBtn").disabled = true;
-          document.getElementById("screenStopBtn").disabled = false;
-          startRecorder("screenDownload", "screenPreview");
-          showError('Using camera as fallback for screen recording');
-        } catch (cameraError) {
-          showError('Could not access camera or screen');
-        }
-      } else {
-        showError('Failed to start screen recording: ' + error.message);
-      }
-    }
+    showError("Screen recording permission denied.");
   }
 }
 
@@ -281,3 +236,4 @@ window.addEventListener('beforeunload', () => {
     stream.getTracks().forEach(track => track.stop());
   }
 });
+
