@@ -1,35 +1,42 @@
 let recorder;
 let chunks = [];
 let stream;
+let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+// Show mobile message if on mobile
+if (isMobile) {
+  document.getElementById('mobileScreenMessage').classList.add('show');
+}
 
 // 🔁 Switch sections
 function showSection(id) {
   document.querySelectorAll(".section").forEach(sec => sec.classList.remove("active"));
   document.getElementById(id).classList.add("active");
   
-  // Reset audio preview when switching sections
-  if (id !== 'audioSection') {
-    const audioPreview = document.getElementById('audioPreview');
-    audioPreview.pause();
-    audioPreview.currentTime = 0;
-    document.getElementById('playPreviewBtn')?.classList.remove('playing');
-    document.getElementById('playIcon')?.classList.remove('fa-pause');
-    document.getElementById('playIcon')?.classList.add('fa-play');
+  // Reset UI
+  resetUI();
+  
+  // Update mobile message for screen section
+  if (id === 'screenSection' && isMobile) {
+    document.getElementById('mobileScreenMessage').classList.add('show');
   }
 }
 
-// 🎥 VIDEO RECORDING
-async function startVideo() {
-  stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-  document.getElementById("videoPreview").srcObject = stream;
-  startRecorder("videoDownload", "videoPreview");
+// Reset UI elements
+function resetUI() {
+  // Reset download links
+  document.querySelectorAll('.download-link').forEach(link => {
+    link.classList.remove('active');
+  });
   
-  // Disable download link until recording stops
-  document.getElementById("videoDownload").classList.remove("active");
-}
-
-// 🎤 AUDIO ONLY RECORDING
-async function startAudio() {
+  // Reset buttons
+  document.querySelectorAll('.controls button').forEach(btn => {
+    btn.disabled = false;
+  });
+  document.getElementById('videoStopBtn').disabled = true;
+  document.getElementById('audioStopBtn').disabled = true;
+  document.getElementById('screenStopBtn').disabled = true;
+  
   // Reset audio preview
   const audioPreview = document.getElementById('audioPreview');
   audioPreview.pause();
@@ -37,35 +44,154 @@ async function startAudio() {
   document.getElementById('playPreviewBtn')?.classList.remove('playing');
   document.getElementById('playIcon')?.classList.remove('fa-pause');
   document.getElementById('playIcon')?.classList.add('fa-play');
-  
-  // Hide preview container
   document.getElementById('audioPreviewContainer').classList.remove('active');
-  
-  stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  
-  // Show recording indicator
-  document.getElementById('recordingIndicator').classList.add('active');
-  
-  startRecorder("audioDownload", "audioPreview");
-  
-  // Disable download link until recording stops
-  document.getElementById("audioDownload").classList.remove("active");
+  document.getElementById('recordingIndicator').classList.remove('active');
 }
 
-// 🖥 SCREEN RECORDING
+// Show error message
+function showError(message) {
+  document.getElementById('errorText').textContent = message;
+  document.getElementById('errorMessage').classList.add('show');
+  setTimeout(() => {
+    document.getElementById('errorMessage').classList.remove('show');
+  }, 4000);
+}
+
+// 🎥 VIDEO RECORDING
+async function startVideo() {
+  try {
+    resetUI();
+    stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: 'user' }, 
+      audio: true 
+    });
+    document.getElementById("videoPreview").srcObject = stream;
+    document.getElementById("videoStartBtn").disabled = true;
+    document.getElementById("videoStopBtn").disabled = false;
+    startRecorder("videoDownload", "videoPreview");
+  } catch (error) {
+    showError('Camera access denied or not available');
+    console.error(error);
+  }
+}
+
+// 🎤 AUDIO ONLY RECORDING
+async function startAudio() {
+  try {
+    resetUI();
+    stream = await navigator.mediaDevices.getUserMedia({ 
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true
+      } 
+    });
+    
+    document.getElementById('recordingIndicator').classList.add('active');
+    document.getElementById("audioStartBtn").disabled = true;
+    document.getElementById("audioStopBtn").disabled = false;
+    
+    startRecorder("audioDownload", "audioPreview");
+  } catch (error) {
+    showError('Microphone access denied or not available');
+    console.error(error);
+  }
+}
+
+// 🖥 SCREEN RECORDING - Mobile friendly
 async function startScreen() {
-  stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-  document.getElementById("screenPreview").srcObject = stream;
-  startRecorder("screenDownload", "screenPreview");
-  
-  // Disable download link until recording stops
-  document.getElementById("screenDownload").classList.remove("active");
+  try {
+    resetUI();
+    
+    // Check if browser supports screen recording
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      if (isMobile) {
+        // For mobile, try getUserMedia as fallback for camera
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' }, 
+            audio: true 
+          });
+          document.getElementById("screenPreview").srcObject = stream;
+          document.getElementById("screenStartBtn").disabled = true;
+          document.getElementById("screenStopBtn").disabled = false;
+          startRecorder("screenDownload", "screenPreview");
+          showError('Using camera instead of screen recording on mobile');
+          return;
+        } catch (cameraError) {
+          showError('Screen recording not supported on this device');
+          return;
+        }
+      } else {
+        showError('Screen recording not supported in this browser');
+        return;
+      }
+    }
+    
+    // Try screen recording
+    stream = await navigator.mediaDevices.getDisplayMedia({ 
+      video: true, 
+      audio: true 
+    });
+    
+    document.getElementById("screenPreview").srcObject = stream;
+    document.getElementById("screenStartBtn").disabled = true;
+    document.getElementById("screenStopBtn").disabled = false;
+    
+    // Handle user cancellation
+    stream.getVideoTracks()[0].onended = () => {
+      if (recorder && recorder.state === "recording") {
+        stopRecording();
+      }
+      document.getElementById("screenStartBtn").disabled = false;
+      document.getElementById("screenStopBtn").disabled = true;
+    };
+    
+    startRecorder("screenDownload", "screenPreview");
+    
+  } catch (error) {
+    console.error('Screen recording error:', error);
+    
+    if (error.name === 'NotAllowedError') {
+      showError('Screen recording permission denied');
+    } else if (error.name === 'NotFoundError') {
+      showError('No screen recording source found');
+    } else {
+      // Try fallback to camera on mobile
+      if (isMobile) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' }, 
+            audio: true 
+          });
+          document.getElementById("screenPreview").srcObject = stream;
+          document.getElementById("screenStartBtn").disabled = true;
+          document.getElementById("screenStopBtn").disabled = false;
+          startRecorder("screenDownload", "screenPreview");
+          showError('Using camera as fallback for screen recording');
+        } catch (cameraError) {
+          showError('Could not access camera or screen');
+        }
+      } else {
+        showError('Failed to start screen recording: ' + error.message);
+      }
+    }
+  }
 }
 
 // 🎬 Common recorder logic
 function startRecorder(downloadId, previewId) {
   chunks = [];
-  recorder = new MediaRecorder(stream);
+  
+  // Determine MIME type
+  const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') 
+    ? 'video/webm;codecs=vp9,opus'
+    : 'video/webm';
+  
+  recorder = new MediaRecorder(stream, {
+    mimeType: mimeType,
+    videoBitsPerSecond: 2500000,
+    audioBitsPerSecond: 128000
+  });
 
   recorder.ondataavailable = e => {
     if (e.data.size > 0) chunks.push(e.data);
@@ -79,25 +205,39 @@ function startRecorder(downloadId, previewId) {
     if (preview.tagName === 'VIDEO') {
       preview.srcObject = null;
       preview.src = url;
+      preview.controls = true;
     } else if (preview.tagName === 'AUDIO') {
       preview.src = url;
-      // Show preview container for audio
       document.getElementById('audioPreviewContainer').classList.add('active');
     }
 
-    // Enable download link
     document.getElementById(downloadId).href = url;
     document.getElementById(downloadId).classList.add('active');
 
-    stream.getTracks().forEach(track => track.stop());
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
     
     // Hide recording indicator for audio
     if (previewId === "audioPreview") {
       document.getElementById('recordingIndicator').classList.remove('active');
     }
+    
+    // Reset buttons
+    resetButtons();
   };
 
   recorder.start();
+}
+
+// Reset buttons after recording
+function resetButtons() {
+  document.getElementById('videoStartBtn').disabled = false;
+  document.getElementById('videoStopBtn').disabled = true;
+  document.getElementById('audioStartBtn').disabled = false;
+  document.getElementById('audioStopBtn').disabled = true;
+  document.getElementById('screenStartBtn').disabled = false;
+  document.getElementById('screenStopBtn').disabled = true;
 }
 
 // ⛔ Stop recording
@@ -107,7 +247,7 @@ function stopRecording() {
   }
 }
 
-// 🎵 Toggle audio preview play/pause
+// 🎵 Toggle audio preview
 function togglePlayPreview() {
   const audio = document.getElementById('audioPreview');
   const playBtn = document.getElementById('playPreviewBtn');
@@ -133,4 +273,11 @@ document.getElementById('audioPreview')?.addEventListener('ended', () => {
   playBtn.classList.remove('playing');
   playIcon.classList.remove('fa-pause');
   playIcon.classList.add('fa-play');
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+  }
 });
