@@ -23,22 +23,27 @@
   </button>
 </div>
 
+<!-- Global Error Message -->
+<div class="error-message" id="errorMessage">
+  <i class="fas fa-exclamation-circle"></i>
+  <span id="errorText"></span>
+</div>
+
 <!-- VIDEO SECTION -->
 <div id="videoSection" class="section active">
-  <video id="videoPreview" autoplay controls></video>
+  <video id="videoPreview" autoplay controls playsinline></video>
   <div class="controls">
-    <button onclick="startVideo()"><i class="fas fa-play"></i> Start</button>
-    <button onclick="stopRecording()"><i class="fas fa-stop"></i> Stop</button>
+    <button onclick="startVideo()" id="videoStartBtn"><i class="fas fa-play"></i> Start</button>
+    <button onclick="stopRecording()" id="videoStopBtn" disabled><i class="fas fa-stop"></i> Stop</button>
   </div>
   <a id="videoDownload" class="download-link" download="video.webm"><i class="fas fa-download"></i> Download Video</a>
 </div>
 
-<!-- AUDIO SECTION - WITH REALISTIC WAVEFORM -->
+<!-- AUDIO SECTION -->
 <div id="audioSection" class="section">
   <div class="audio-container">
     <div class="waveform-visualizer">
       <div class="waveform-container" id="waveform">
-        <!-- 24 waveform bars for realistic look -->
         <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
         <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
         <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
@@ -55,7 +60,6 @@
       </div>
     </div>
     
-    <!-- Audio preview section with play button (hidden until recording) -->
     <div class="audio-preview-container" id="audioPreviewContainer">
       <button class="play-preview-btn" id="playPreviewBtn" onclick="togglePlayPreview()">
         <i class="fas fa-play" id="playIcon"></i>
@@ -63,23 +67,31 @@
       <span class="preview-text">Preview your recording</span>
     </div>
     
-    <!-- Hidden audio element -->
     <audio id="audioPreview"></audio>
   </div>
   
   <div class="controls">
-    <button onclick="startAudio()"><i class="fas fa-circle"></i> Start</button>
-    <button onclick="stopRecording()"><i class="fas fa-stop"></i> Stop</button>
+    <button onclick="startAudio()" id="audioStartBtn"><i class="fas fa-circle"></i> Start</button>
+    <button onclick="stopRecording()" id="audioStopBtn" disabled><i class="fas fa-stop"></i> Stop</button>
   </div>
   <a id="audioDownload" class="download-link" download="audio.webm"><i class="fas fa-download"></i> Download Audio</a>
 </div>
 
 <!-- SCREEN SECTION -->
 <div id="screenSection" class="section">
-  <video id="screenPreview" autoplay controls></video>
+  <!-- Mobile-friendly message -->
+  <div class="mobile-message" id="mobileScreenMessage">
+    <i class="fas fa-mobile-alt"></i>
+    <div class="message-content">
+      <strong>Screen Recording on Mobile</strong>
+      <span id="mobileMessageText">On Android, you'll need to grant permission and select "Start now" to begin recording.</span>
+    </div>
+  </div>
+  
+  <video id="screenPreview" autoplay controls playsinline></video>
   <div class="controls">
-    <button onclick="startScreen()"><i class="fas fa-play"></i> Start</button>
-    <button onclick="stopRecording()"><i class="fas fa-stop"></i> Stop</button>
+    <button onclick="startScreen()" id="screenStartBtn"><i class="fas fa-play"></i> Start</button>
+    <button onclick="stopRecording()" id="screenStopBtn" disabled><i class="fas fa-stop"></i> Stop</button>
   </div>
   <a id="screenDownload" class="download-link" download="screen.webm"><i class="fas fa-download"></i> Download Screen</a>
 </div>
